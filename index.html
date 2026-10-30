@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Визитка — Дмитрий | Трезвый водитель</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- QR -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Рендер карточек в высоком разрешении -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Сборка PDF с точными размерами -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        :root {
+            --bg-gradient-start: #1a1a1a;
+            --bg-gradient-end: #0a0a0a;
+            --card-matte-black: #141414;
+            --card-border: #262626;
+            --text-silver: #e0e0e0;
+            --text-muted: #7a7a7a;
+            --text-dark: #4a4a4a;
+            --accent-glow: rgba(255, 255, 255, 0.03);
+            --vk-color: #0077ff;
+            --tg-color: #229ed9;
+            --avito-color: #98ce00;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: var(--text-silver);
+            overflow-x: hidden;
+        }
+
+        .presentation-container {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .header-info { text-align: center; margin-bottom: 10px; }
+        .header-info h1 {
+            font-weight: 300; font-size: 1.5rem; letter-spacing: 3px;
+            text-transform: uppercase; color: var(--text-silver); margin-bottom: 8px;
+        }
+        .header-info p { font-size: 0.85rem; color: var(--text-muted); letter-spacing: 1px; }
+
+        .cards-grid {
+            display: flex; flex-wrap: wrap; justify-content: center;
+            gap: 30px; width: 100%;
+        }
+
+        .business-card {
+            width: 100%;
+            max-width: 450px;
+            aspect-ratio: 1.8 / 1;
+            background: var(--card-matte-black);
+            border: 1px solid var(--card-border);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 35px;
+            transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s ease;
+        }
+
+        .business-card::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 50% -20%, rgba(255,255,255,0.04), transparent 70%),
+                        linear-gradient(45deg, rgba(0,0,0,0) 40%, rgba(255,255,255,0.01) 50%, rgba(0,0,0,0) 60%);
+            pointer-events: none;
+        }
+
+        .business-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 30px 50px rgba(0,0,0,0.8),
+                        0 0 30px rgba(255,255,255,0.02),
+                        inset 0 1px 0 rgba(255,255,255,0.08);
+        }
+
+        /* Лицевая */
+        .card-front .logo-area {
+            display: flex; align-items: center; justify-content: space-between;
+            width: 100%; gap: 15px;
+        }
+        .card-front .logo-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .card-front .logo-icon {
+            width: 24px; height: 24px; stroke: var(--text-silver);
+            stroke-width: 1.5; fill: none; opacity: 0.8;
+        }
+        .card-front .logo-text {
+            font-size: 0.75rem; font-weight: 500; letter-spacing: 5px;
+            text-transform: uppercase; color: var(--text-muted);
+        }
+        .card-front .front-phone {
+            font-size: 0.95rem; font-weight: 600; letter-spacing: 1px;
+            color: #ffffff; text-decoration: none; opacity: 0.9;
+            white-space: nowrap; flex-shrink: 0;
+        }
+        .card-front .main-content {
+            margin-top: auto; display: flex; flex-direction: column; gap: 4px;
+        }
+        .card-front .front-tagline {
+            font-size: 0.65rem; font-weight: 400; letter-spacing: 2px;
+            text-transform: uppercase; color: var(--text-muted);
+            margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.03); padding-top: 6px;
+        }
+        .card-name {
+            font-size: 1.8rem; font-weight: 400; letter-spacing: 4px;
+            text-transform: uppercase; color: #ffffff; margin-bottom: 2px;
+        }
+        .card-status {
+            font-size: 0.8rem; font-weight: 500; letter-spacing: 3px;
+            text-transform: uppercase; color: var(--text-muted);
+        }
+
+        /* QR-контейнер */
+        .qr-container {
+            width: 72px; height: 72px; padding: 6px;
+            background: #ffffff; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            cursor: pointer; transition: transform 0.3s ease; flex-shrink: 0;
+        }
+        .qr-container:hover { transform: scale(1.08); }
+        .qr-code canvas, .qr-code img { width: 100% !important; height: 100% !important; }
+
+        /* Оборот */
+        .card-back { justify-content: flex-start; gap: 0; padding: 30px; }
+        .card-back .mini-header {
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 10px; width: 100%; flex-shrink: 0;
+        }
+        .card-back .mini-service {
+            font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase;
+            color: var(--text-silver); margin-top: 2px; font-weight: 500;
+        }
+        .back-middle-row {
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 15px; flex-grow: 1; width: 100%; padding: 5px 0;
+        }
+        .card-details {
+            font-size: 0.72rem; color: var(--text-silver); line-height: 1.6;
+            letter-spacing: 0.2px; max-width: 74%; opacity: 0.9;
+        }
+        .card-details p {
+            margin-bottom: 8px; position: relative; padding-left: 12px;
+        }
+        .card-details p:last-child { margin-bottom: 0; }
+        .card-details p::before {
+            content: '•'; position: absolute; left: 0; color: var(--text-muted);
+        }
+        .contact-row {
+            display: flex; align-items: center; gap: 10px;
+            border-top: 1px solid rgba(255,255,255,0.03);
+            padding-top: 10px; width: 100%; flex-shrink: 0;
+        }
+        .contact-icon {
+            width: 16px; height: 16px; stroke: var(--text-muted);
+            stroke-width: 1.5; fill: none;
+        }
+        .phone-link {
+            font-size: 1.2rem; font-weight: 600; letter-spacing: 1.5px;
+            color: #ffffff; text-decoration: none; transition: color 0.2s ease;
+        }
+        .phone-link:hover { color: var(--text-silver); }
+
+        /* Кнопки */
+        .controls {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 15px; margin-top: 10px;
+        }
+        .controls .btn-row {
+            display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
+        }
+        .btn-copy {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-silver);
+            padding: 12px 28px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.85rem; font-weight: 500; letter-spacing: 1px;
+            border-radius: 30px; cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex; align-items: center; gap: 10px;
+            outline: none;
+        }
+        .btn-copy:hover:not(:disabled) {
+            background: #ffffff; color: #000000;
+            border-color: #ffffff;
+            box-shadow: 0 5px 15px rgba(255,255,255,0.1);
+        }
+        .btn-copy:disabled { opacity: 0.6; cursor: wait; }
+        .btn-print {
+            background: #ffffff; color: #000000;
+            border-color: #ffffff;
+        }
+        .btn-print:hover:not(:disabled) {
+            background: #e5e5e5; border-color: #e5e5e5;
+            box-shadow: 0 5px 20px rgba(255,255,255,0.25);
+        }
+        .print-hint {
+            font-size: 0.72rem; color: var(--text-muted);
+            letter-spacing: 0.5px; text-align: center; max-width: 420px;
+            line-height: 1.5;
+        }
+
+        /* Цифровое меню */
+        .digital-menu-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            z-index: 200;
+            display: flex; justify-content: center; align-items: flex-end;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+        .digital-menu-overlay.active { opacity: 1; pointer-events: auto; }
+        .digital-menu {
+            width: 100%; max-width: 480px;
+            background: #111111;
+            border-top: 1px solid #222222;
+            border-radius: 24px 24px 0 0;
+            padding: 35px 25px 40px 25px;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.8);
+            text-align: center;
+        }
+        .digital-menu-overlay.active .digital-menu { transform: translateY(0); }
+        .menu-handle {
+            width: 40px; height: 4px; background: #333333;
+            border-radius: 2px; margin: 0 auto 25px auto; cursor: pointer;
+        }
+        .menu-title {
+            font-size: 1.2rem; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 2px; color: #fff; margin-bottom: 5px;
+        }
+        .menu-subtitle {
+            font-size: 0.8rem; color: var(--text-muted);
+            margin-bottom: 30px; letter-spacing: 0.5px;
+        }
+        .menu-links-list { display: flex; flex-direction: column; gap: 15px; }
+        .menu-item-btn {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 20px; border-radius: 14px;
+            text-decoration: none; color: #ffffff;
+            font-weight: 500; font-size: 0.95rem; letter-spacing: 0.5px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            background: #1a1a1a; border: 1px solid #262626;
+        }
+        .menu-item-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .menu-btn-content { display: flex; align-items: center; gap: 15px; }
+        .menu-btn-icon { width: 20px; height: 20px; fill: currentColor; }
+        .arrow-icon { width: 16px; height: 16px; stroke: #444; stroke-width: 2; fill: none; }
+        .btn-close-menu {
+            margin-top: 25px; background: transparent; border: none;
+            color: var(--text-muted); font-family: 'Montserrat', sans-serif;
+            font-size: 0.85rem; cursor: pointer; letter-spacing: 1px;
+            text-transform: uppercase; padding: 5px;
+        }
+        .btn-close-menu:hover { color: #fff; }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 30px; left: 50%;
+            transform: translateX(-50%) translateY(120px);
+            background: #ffffff; color: #000000;
+            padding: 12px 24px; border-radius: 30px;
+            font-size: 0.85rem; font-weight: 500; letter-spacing: 0.5px;
+            opacity: 0; transition: all 0.35s cubic-bezier(0.25,1,0.5,1);
+            z-index: 300; pointer-events: none;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* Захват печати: отключаем hover-тень на время рендера */
+        body.capturing .business-card { transform: none !important; transition: none !important; }
+
+        /* Адаптивность */
+        @media (max-width: 540px) {
+            .business-card { padding: 25px; }
+            .card-back { padding: 22px; }
+            .card-name { font-size: 1.4rem; letter-spacing: 2px; }
+            .card-status { font-size: 0.75rem; letter-spacing: 2px; }
+            .phone-link { font-size: 1.05rem; }
+            .card-front .front-phone { font-size: 0.8rem; letter-spacing: 0.5px; }
+            .card-front .front-tagline { font-size: 0.58rem; letter-spacing: 1px; }
+            .card-details { font-size: 0.65rem; max-width: 68%; }
+            .qr-container { width: 62px; height: 62px; padding: 4px; }
+            .btn-copy { padding: 10px 20px; font-size: 0.78rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="presentation-container">
+
+        <div class="header-info">
+            <h1>Премиум Презентация</h1>
+            <p>Визитка 90×50 мм • готовый файл для типографии</p>
+        </div>
+
+        <div class="cards-grid">
+
+            <!-- ЛИЦЕВАЯ СТОРОНА -->
+            <div class="business-card card-front">
+                <div class="logo-area">
+                    <div class="logo-brand">
+                        <svg class="logo-icon" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10"/>
+                            <circle cx="12" cy="12" r="3"/>
+                            <line x1="12" y1="2" x2="12" y2="9"/>
+                            <line x1="2" y1="12" x2="9" y2="12"/>
+                            <line x1="15" y1="12" x2="22" y2="12"/>
+                        </svg>
+                        <span class="logo-text">Premium</span>
+                    </div>
+                    <a href="tel:+79505479228" class="front-phone">+7 (950) 547-92-28</a>
+                </div>
+
+                <div class="main-content">
+                    <div class="card-name">Дмитрий</div>
+                    <div class="card-status">Трезвый водитель</div>
+                    <div class="front-tagline">Профессиональное сопровождение и безопасность</div>
+                </div>
+            </div>
+
+            <!-- ОБОРОТНАЯ СТОРОНА -->
+            <div class="business-card card-back">
+                <div class="mini-header">
+                    <div class="mini-service">Профессиональное сопровождение • Безопасность • 24/7</div>
+                </div>
+
+                <div class="back-middle-row">
+                    <div class="card-details">
+                        <p>Опыт безаварийного вождения — 6 лет.</p>
+                        <p>Отличное знание города Екатеринбурга и Свердловской области.</p>
+                    </div>
+
+                    <div class="qr-container" id="qrBackContainer" title="Открыть цифровое меню контактов">
+                        <div id="qrcodeBack" class="qr-code"></div>
+                    </div>
+                </div>
+
+                <div class="contact-row">
+                    <svg class="contact-icon" viewBox="0 0 24 24">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                    </svg>
+                    <a href="tel:+79505479228" class="phone-link">+7 (950) 547-92-28</a>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="controls">
+            <div class="btn-row">
+                <button class="btn-copy" id="copyBtn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    Скопировать номер
+                </button>
+
+                <button class="btn-copy btn-print" id="downloadBtn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Скачать для печати (PDF)
+                </button>
+            </div>
+            <div class="print-hint">
+                PDF: 2 страницы (лицо + оборот), размер 90×50 мм, 300 DPI.<br>
+                Для типографии: без вылетов — уточните, нужны ли 2 мм под обрез.
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ЦИФРОВОЕ МЕНЮ -->
+    <div class="digital-menu-overlay" id="menuOverlay">
+        <div class="digital-menu">
+            <div class="menu-handle" id="menuHandle"></div>
+            <div class="menu-title">Дмитрий</div>
+            <div class="menu-subtitle">Трезвый водитель • Контакты</div>
+
+            <div class="menu-links-list">
+                <a href="https://vk.ru/d_shved" target="_blank" class="menu-item-btn" style="border-left: 4px solid var(--vk-color);">
+                    <div class="menu-btn-content">
+                        <svg class="menu-btn-icon" style="color: var(--vk-color);" viewBox="0 0 24 24">
+                            <path d="M15.925 2H8.074C3.651 2 2 3.651 2 8.074v7.851C2 20.349 3.651 22 8.074 22h7.851C20.349 22 22 20.349 22 15.925V8.074C22 3.651 20.349 2 15.925 2zM17.76 16.24c0 .32-.23.63-.78.63h-1.63c-.62 0-1.12-.33-1.63-.94-.37-.41-.7-.84-1.07-.84-.13 0-.25.04-.35.13-.25.21-.29.62-.29.98v.43c0 .24-.15.24-.46.24a4.87 4.87 0 01-3.66-2.18c-1.3-1.84-1.81-3.87-1.81-4.04 0-.15.06-.29.29-.29h1.63c.21 0 .28.08.34.25.32.9.83 2.14 1.54 2.82.25.24.47.38.64.38.13 0 .21-.06.27-.24.16-.54.16-1.58.16-1.92v-.5c-.04-.63-.39-.68-.39-.93 0-.08.06-.17.18-.17h2.59c.17 0 .23.09.25.26v2.33c0 .16.07.23.16.23.11 0 .24-.07.47-.29.83-.94 1.25-2.29 1.25-2.29.04-.13.13-.17.29-.17h1.63c.27 0 .34.09.28.32-.17.76-1.11 2.27-1.11 2.27-.16.24-.19.34 0 .58.15.18.91 1.03 1.48 1.8.52.7.83 1.28.83 1.6z"/>
+                        </svg>
+                        <span>Открыть ВКонтакте</span>
+                    </div>
+                    <svg class="arrow-icon" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+                </a>
+
+                <a href="https://t.me/Shved00w" target="_blank" class="menu-item-btn" style="border-left: 4px solid var(--tg-color);">
+                    <div class="menu-btn-content">
+                        <svg class="menu-btn-icon" style="color: var(--tg-color);" viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-1-.65-.35-1 .22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.94-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .24z"/>
+                        </svg>
+                        <span>Написать в Telegram</span>
+                    </div>
+                    <svg class="arrow-icon" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+                </a>
+
+                <a href="https://www.avito.ru/ekaterinburg/predlozheniya_uslug/trezvyy_voditel_peregon_avto_uslugi_voditelya_8544993866" target="_blank" class="menu-item-btn" style="border-left: 4px solid var(--avito-color);">
+                    <div class="menu-btn-content">
+                        <svg class="menu-btn-icon" style="color: var(--avito-color);" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+                            <circle cx="9" cy="9" r="2"/>
+                            <circle cx="15" cy="9" r="3"/>
+                            <circle cx="10" cy="15" r="3.5"/>
+                            <circle cx="15.5" cy="14.5" r="1.5"/>
+                        </svg>
+                        <span>Профиль на Авито</span>
+                    </div>
+                    <svg class="arrow-icon" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+                </a>
+
+                <a href="tel:+79505479228" class="menu-item-btn" style="border-left: 4px solid #ffffff; background: #222;">
+                    <div class="menu-btn-content">
+                        <svg class="menu-btn-icon" style="color: #fff;" viewBox="0 0 24 24">
+                            <path d="M20 15.5c-1.25 0-2.45-.2-3.57-.57a1.02 1.02 0 00-1.02.24l-2.2 2.2a15.04 15.04 0 01-6.59-6.59l2.2-2.21a1 1 0 00.25-1A11.36 11.36 0 018.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1z"/>
+                        </svg>
+                        <span style="font-weight: 600;">Позвонить: +7 (950) 547-92-28</span>
+                    </div>
+                    <svg class="arrow-icon" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+                </a>
+            </div>
+
+            <button class="btn-close-menu" id="closeMenuBtn">Закрыть</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">Номер скопирован в буфер</div>
+    <textarea id="hiddenPhone" style="position: absolute; left: -9999px;" readonly>+79505479228</textarea>
+
+    <script>
+        // ==== Ссылка для QR ====
+        var taplinkTargetUrl = "https://taplink.cc/d.lobanov96";
+
+        // QR высокого разрешения (для печати)
+        new QRCode(document.getElementById("qrcodeBack"), {
+            text: taplinkTargetUrl,
+            width: 300,
+            height: 300,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+
+        // ==== Меню ====
+        var overlay = document.getElementById('menuOverlay');
+        var openBack = document.getElementById('qrBackContainer');
+        var closeBtn = document.getElementById('closeMenuBtn');
+        var handle = document.getElementById('menuHandle');
+
+        function openMenu() { overlay.classList.add('active'); }
+        function closeMenu() { overlay.classList.remove('active'); }
+
+        openBack.addEventListener('click', openMenu);
+        closeBtn.addEventListener('click', closeMenu);
+        handle.addEventListener('click', closeMenu);
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) closeMenu();
+        });
+
+        // ==== Копирование номера ====
+        document.getElementById('copyBtn').addEventListener('click', function() {
+            var copyText = document.getElementById('hiddenPhone');
+            copyText.select();
+            copyText.setSelectionRange(0, 99999);
+
+            try {
+                var successful = document.execCommand('copy');
+                if (successful) {
+                    var toast = document.getElementById('toast');
+                    toast.classList.add('show');
+                    setTimeout(function() { toast.classList.remove('show'); }, 2500);
+                }
+            } catch (err) {}
+            window.getSelection().removeAllRanges();
+        });
+
+        // ==== Скачивание PDF для печати ====
+        document.getElementById('downloadBtn').addEventListener('click', async function () {
+            const btn = this;
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Готовим файл…';
+
+            try {
+                // Ждём загрузки шрифтов (важно для корректного рендера)
+                if (document.fonts && document.fonts.ready) {
+                    try { await document.fonts.ready; } catch (e) {}
+                }
+                await new Promise(r => setTimeout(r, 80));
+
+                const front = document.querySelector('.card-front');
+                const back  = document.querySelector('.card-back');
+
+                // Отключаем hover-эффект на время рендера
+                document.body.classList.add('capturing');
+
+                // Масштаб под 300 DPI (90×50 мм = 1063×591 px при 300 DPI)
+                const targetWidthPx = Math.round(90 / 25.4 * 300); // ≈1063
+                const scale = Math.min(8, Math.max(3, targetWidthPx / front.offsetWidth));
+
+                const opts = {
+                    scale: scale,
+                    backgroundColor: '#141414',
+                    useCORS: true,
+                    logging: false,
+                    windowWidth: document.documentElement.scrollWidth,
+                    windowHeight: document.documentElement.scrollHeight
+                };
+
+                const frontCanvas = await html2canvas(front, opts);
+                const backCanvas  = await html2canvas(back, opts);
+
+                document.body.classList.remove('capturing');
+
+                // Собираем PDF 90×50 мм
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'mm',
+                    format: [90, 50],
+                    compress: true
+                });
+
+                pdf.addImage(frontCanvas.toDataURL('image/png'), 'PNG', 0, 0, 90, 50);
+                pdf.addPage([90, 50], 'landscape');
+                pdf.addImage(backCanvas.toDataURL('image/png'), 'PNG', 0, 0, 90, 50);
+
+                // Имя файла
+                const date = new Date();
+                const stamp = date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
+                pdf.save(`vizitka-Dmitry-90x50mm-${stamp}.pdf`);
+
+            } catch (err) {
+                console.error(err);
+                alert('Не удалось создать файл для печати.\n' + (err && err.message ? err.message : ''));
+                document.body.classList.remove('capturing');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        });
+    </script>
+</body>
+</html>
