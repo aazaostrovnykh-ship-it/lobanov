@@ -220,7 +220,7 @@
         }
         .print-hint {
             font-size: 0.72rem; color: var(--text-muted);
-            letter-spacing: 0.5px; text-align: center; max-width: 420px;
+            letter-spacing: 0.5px; text-align: center; max-width: 460px;
             line-height: 1.5;
         }
 
@@ -293,7 +293,7 @@
         }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        /* Захват печати: отключаем hover-тень на время рендера */
+        /* На время рендера отключаем hover-эффект */
         body.capturing .business-card { transform: none !important; transition: none !important; }
 
         /* Адаптивность */
@@ -317,7 +317,7 @@
 
         <div class="header-info">
             <h1>Премиум Презентация</h1>
-            <p>Визитка 90×50 мм • готовый файл для типографии</p>
+            <p>Визитка 90×50 мм • PDF для типографии</p>
         </div>
 
         <div class="cards-grid">
@@ -392,7 +392,7 @@
                 </button>
             </div>
             <div class="print-hint">
-                PDF: 2 страницы (лицо + оборот), размер 90×50 мм, 300 DPI.<br>
+                PDF: 2 страницы (лицо + оборот), размер 90×50 мм, <strong>600 DPI</strong>.<br>
                 Для типографии: без вылетов — уточните, нужны ли 2 мм под обрез.
             </div>
         </div>
@@ -463,11 +463,11 @@
         // ==== Ссылка для QR ====
         var taplinkTargetUrl = "https://taplink.cc/d.lobanov96";
 
-        // QR высокого разрешения (для печати)
+        // QR высокого разрешения (600 px — под печать 600 DPI)
         new QRCode(document.getElementById("qrcodeBack"), {
             text: taplinkTargetUrl,
-            width: 300,
-            height: 300,
+            width: 600,
+            height: 600,
             colorDark : "#000000",
             colorLight : "#ffffff",
             correctLevel : QRCode.CorrectLevel.H
@@ -506,7 +506,7 @@
             window.getSelection().removeAllRanges();
         });
 
-        // ==== Скачивание PDF для печати ====
+        // ==== Скачивание PDF для печати (600 DPI) ====
         document.getElementById('downloadBtn').addEventListener('click', async function () {
             const btn = this;
             const originalHTML = btn.innerHTML;
@@ -514,7 +514,6 @@
             btn.innerHTML = '⏳ Готовим файл…';
 
             try {
-                // Ждём загрузки шрифтов (важно для корректного рендера)
                 if (document.fonts && document.fonts.ready) {
                     try { await document.fonts.ready; } catch (e) {}
                 }
@@ -523,12 +522,13 @@
                 const front = document.querySelector('.card-front');
                 const back  = document.querySelector('.card-back');
 
-                // Отключаем hover-эффект на время рендера
                 document.body.classList.add('capturing');
 
-                // Масштаб под 300 DPI (90×50 мм = 1063×591 px при 300 DPI)
-                const targetWidthPx = Math.round(90 / 25.4 * 300); // ≈1063
-                const scale = Math.min(8, Math.max(3, targetWidthPx / front.offsetWidth));
+                // 600 DPI: 90 мм = 90 / 25.4 * 600 ≈ 2126 px
+                const DPI = 600;
+                const targetWidthPx = Math.round(90 / 25.4 * DPI);
+                // Ограничение сверху 12 — защита от «памяти» на слабых устройствах
+                const scale = Math.min(12, Math.max(4, targetWidthPx / front.offsetWidth));
 
                 const opts = {
                     scale: scale,
@@ -544,7 +544,6 @@
 
                 document.body.classList.remove('capturing');
 
-                // Собираем PDF 90×50 мм
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({
                     orientation: 'landscape',
@@ -553,14 +552,16 @@
                     compress: true
                 });
 
+                // PNG без потерь — идеально для плоских цветов
                 pdf.addImage(frontCanvas.toDataURL('image/png'), 'PNG', 0, 0, 90, 50);
                 pdf.addPage([90, 50], 'landscape');
                 pdf.addImage(backCanvas.toDataURL('image/png'), 'PNG', 0, 0, 90, 50);
 
-                // Имя файла
-                const date = new Date();
-                const stamp = date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
-                pdf.save(`vizitka-Dmitry-90x50mm-${stamp}.pdf`);
+                const d = new Date();
+                const stamp = d.getFullYear() + '-' +
+                              String(d.getMonth()+1).padStart(2,'0') + '-' +
+                              String(d.getDate()).padStart(2,'0');
+                pdf.save(`vizitka-Dmitry-90x50mm-600dpi-${stamp}.pdf`);
 
             } catch (err) {
                 console.error(err);
